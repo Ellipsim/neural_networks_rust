@@ -1,5 +1,5 @@
 [package]
-name = "Redes_Neuronales"
+name = "neural_networks_rust"
 version = "0.1.0"
 edition = "2024"
 

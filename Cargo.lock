@@ -3,5 +3,5 @@
 version = 4
 
 [[package]]
-name = "Redes_Neuronales"
+name = "neural_networks_rust"
 version = "0.1.0"

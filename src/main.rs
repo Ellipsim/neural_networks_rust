@@ -1,3 +1,5 @@
+use neural_networks_rust::data::mnist::cargar_mnist;
+
 fn main() {
-    println!("Hello, world!");
+    cargar_mnist();
 }
