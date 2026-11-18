@@ -17,13 +17,14 @@ impl Mnist {
 
         &self.images[start..end]
     }
+
+    pub fn get_prepared_image(&self, index: usize) -> Vec<f32> {
+        let image = self.get_image(index);
+        crate::data::preprocessing::prepare_image(image)
+    }
 }
 
-pub fn load_dataset(
-    images_path: &str,
-    labels_path: &str,
-) -> Result<Mnist, Error> {
-
+pub fn load_dataset(images_path: &str, labels_path: &str) -> Result<Mnist, Error> {
     let (images, rows, cols) = load_images(images_path)?;
     let labels = load_labels(labels_path)?;
 
@@ -77,7 +78,6 @@ fn load_images(file_path: &str) -> Result<(Vec<u8>, usize, usize), Error> {
         ));
     }
 
-    
     Ok((images, rows, cols))
 }
 
@@ -112,18 +112,13 @@ fn load_labels(file_path: &str) -> Result<Vec<u8>, Error> {
     }
 
     if !labels.iter().all(|&label| label <= 9) {
-        return Err(Error::new(
-            ErrorKind::InvalidData,
-            "Invalid label value",
-        ));
+        return Err(Error::new(ErrorKind::InvalidData, "Invalid label value"));
     }
 
     Ok(labels)
 }
 
-
-
-#[cfg(test)]    
+#[cfg(test)]
 mod tests {
     use super::*;
     use tempfile::tempdir;
@@ -135,8 +130,7 @@ mod tests {
 
         fs::write(&path, create_test_images()).unwrap();
 
-        let (images, rows, cols) =
-            load_images(path.to_str().unwrap()).unwrap();
+        let (images, rows, cols) = load_images(path.to_str().unwrap()).unwrap();
 
         assert_eq!(images.len(), 8);
         assert_eq!(rows, 2);
@@ -191,10 +185,7 @@ mod tests {
     #[test]
     fn test_get_image() {
         let dataset = Mnist {
-            images: vec![
-                0, 100, 150, 255,
-                255, 150, 100, 0,
-            ],
+            images: vec![0, 100, 150, 255, 255, 150, 100, 0],
             labels: vec![3, 7],
             rows: 2,
             cols: 2,
@@ -208,10 +199,7 @@ mod tests {
     #[test]
     fn test_get_second_image() {
         let dataset = Mnist {
-            images: vec![
-                0, 100, 150, 255,
-                255, 150, 100, 0,
-            ],
+            images: vec![0, 100, 150, 255, 255, 150, 100, 0],
             labels: vec![3, 7],
             rows: 2,
             cols: 2,
@@ -220,5 +208,26 @@ mod tests {
         let image = dataset.get_image(1);
 
         assert_eq!(image, &[255, 150, 100, 0]);
+    }
+
+    #[test]
+    fn test_get_prepared_image() {
+        let dataset = Mnist {
+            images: vec![0, 128, 255, 64],
+            labels: vec![3],
+            rows: 2,
+            cols: 2,
+        };
+
+        let prepared = dataset.get_prepared_image(0);
+
+        assert_eq!(prepared.len(), 4);
+        assert_eq!(prepared[0], 0.0);
+        assert!((prepared[1] - 0.50196).abs() < 0.0001);
+        assert_eq!(prepared[2], 1.0);
+        assert!((prepared[3] - 0.25098).abs() < 0.0001);
+
+        // The original image must remain unchanged.
+        assert_eq!(dataset.get_image(0), &[0, 128, 255, 64]);
     }
 }
