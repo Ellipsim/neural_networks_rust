@@ -1,5 +1,5 @@
-use neural_networks_rust::data::mnist::cargar_mnist;
+use neural_networks_rust::data::mnist::load_dataset;
 
 fn main() {
-    cargar_mnist();
+    println!("Neural Networks Rust");
 }
