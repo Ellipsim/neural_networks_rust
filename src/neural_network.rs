@@ -1,7 +1,6 @@
-pub mod batch;
-pub mod evaluation;
 pub mod layer;
+pub mod gradients;
 pub mod network;
-pub mod neuron;
 pub mod training;
-pub mod weights;
+pub mod evaluation;
+pub mod optimizers;
