@@ -1,7 +1,7 @@
 use neural_networks_rust::data::mnist::load_dataset;
 use neural_networks_rust::neural_network::evaluation::evaluate;
 use neural_networks_rust::neural_network::network::Network;
-use neural_networks_rust::neural_network::training::train;
+use neural_networks_rust::neural_network::training::train_with_batch_size;
 use neural_networks_rust::utils::metrics::{f1_score, precision, recall};
 use neural_networks_rust::utils::visualization::{
     print_confusion_matrix, print_image, print_training_history,
@@ -20,7 +20,7 @@ fn main() {
     println!("\nExample training image:");
     println!("Label: {}", dataset.labels[0]);
 
-    print_image(dataset.get_image(0), dataset.rows, dataset.cols);
+    // print_image(dataset.get_image(0), dataset.rows, dataset.cols);
 
     let test_dataset = load_dataset(
         "data/t10k-images-idx3-ubyte/t10k-images.idx3-ubyte",
@@ -40,7 +40,21 @@ fn main() {
     let activations = ["relu", "relu", "softmax"];
 
     // 5. Train the network
-    let training_history = train(&mut network, &dataset, &activations, 0.01, 5);
+    let training_start = std::time::Instant::now();
+
+    let training_history = train_with_batch_size(
+        &mut network,
+        &dataset,
+        &activations,
+        0.03,
+        5,
+        32,
+    );
+
+    println!(
+        "\nTraining time: {:.2} seconds",
+        training_start.elapsed().as_secs_f64()
+    );
 
     print_training_history(&training_history);
 

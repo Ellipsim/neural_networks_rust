@@ -1,7 +1,4 @@
-use crate::data::mnist::Mnist;
-use crate::data::preprocessing::one_hot_encode;
 use crate::functions::activation::{relu_derivative, sigmoid_derivative};
-use crate::functions::loss::cross_entropy_loss;
 use crate::neural_network::layer::Layer;
 use crate::neural_network::neuron::NeuronGradients;
 
@@ -87,6 +84,7 @@ impl Network {
         error * derivative
     }
 
+
     pub fn forward_with_cache(
         &self,
         inputs: &[f32],
@@ -96,23 +94,35 @@ impl Network {
 
         let mut current_outputs = inputs.to_vec();
 
-        let mut layer_inputs = Vec::new();
-        let mut weighted_sums = Vec::new();
-        let mut layer_outputs = Vec::new();
+        let mut layer_inputs = Vec::with_capacity(self.layers.len());
+        let mut weighted_sums = Vec::with_capacity(self.layers.len());
+        let mut layer_outputs = Vec::with_capacity(self.layers.len());
 
-        for (i, layer) in self.layers.iter().enumerate() {
+        for (layer, activation) in self.layers.iter().zip(activations) {
             layer_inputs.push(current_outputs.clone());
 
+            // Calculate weighted sums only once.
             let sums: Vec<f32> = layer
                 .neurons
                 .iter()
                 .map(|neuron| neuron.weighted_sum(&current_outputs))
                 .collect();
 
+            // Apply the activation using the calculated sums.
+            current_outputs = match *activation {
+                "relu" => sums.iter().map(|&x| x.max(0.0)).collect(),
+
+                "sigmoid" => sums
+                    .iter()
+                    .map(|&x| 1.0 / (1.0 + (-x).exp()))
+                    .collect(),
+
+                "softmax" => crate::functions::activation::softmax(&sums),
+
+                _ => panic!("Unknown activation function"),
+            };
+
             weighted_sums.push(sums);
-
-            current_outputs = layer.forward_with_activation(&current_outputs, activations[i]);
-
             layer_outputs.push(current_outputs.clone());
         }
 
@@ -124,6 +134,7 @@ impl Network {
 
         (current_outputs, cache)
     }
+
 
     pub fn backward(
         &self,
@@ -209,6 +220,61 @@ impl Network {
         loss
     }
 }
+
+
+impl NetworkGradients {
+    pub fn zeros_like(network: &Network) -> Self {
+        let layers = network
+            .layers
+            .iter()
+            .map(|layer| {
+                layer
+                    .neurons
+                    .iter()
+                    .map(|neuron| NeuronGradients {
+                        weights: vec![0.0; neuron.weights.len()],
+                        bias: 0.0,
+                    })
+                    .collect()
+            })
+            .collect();
+
+        Self { layers }
+    }
+
+    pub fn add_assign(&mut self, other: &Self) {
+        assert_eq!(self.layers.len(), other.layers.len());
+
+        for (layer, other_layer) in self.layers.iter_mut().zip(&other.layers) {
+            assert_eq!(layer.len(), other_layer.len());
+
+            for (neuron, other_neuron) in layer.iter_mut().zip(other_layer) {
+                assert_eq!(neuron.weights.len(), other_neuron.weights.len());
+
+                for (weight, other_weight) in
+                    neuron.weights.iter_mut().zip(&other_neuron.weights)
+                {
+                    *weight += other_weight;
+                }
+
+                neuron.bias += other_neuron.bias;
+            }
+        }
+    }
+
+    pub fn scale(&mut self, factor: f32) {
+        for layer in &mut self.layers {
+            for neuron in layer {
+                for weight in &mut neuron.weights {
+                    *weight *= factor;
+                }
+
+                neuron.bias *= factor;
+            }
+        }
+    }
+}
+
 
 #[cfg(test)]
 mod tests {
@@ -373,3 +439,4 @@ mod tests {
         assert!(final_loss < initial_loss);
     }
 }
+

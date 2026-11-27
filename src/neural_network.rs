@@ -1,3 +1,4 @@
+pub mod batch;
 pub mod evaluation;
 pub mod layer;
 pub mod network;
