@@ -50,11 +50,8 @@ fn test_load_dataset() {
     fs::write(&images_path, create_test_images()).unwrap();
     fs::write(&labels_path, create_test_labels()).unwrap();
 
-    let dataset = load_dataset(
-        images_path.to_str().unwrap(),
-        labels_path.to_str().unwrap(),
-    )
-    .unwrap();
+    let dataset =
+        load_dataset(images_path.to_str().unwrap(), labels_path.to_str().unwrap()).unwrap();
 
     assert_eq!(dataset.rows, 2);
     assert_eq!(dataset.cols, 2);
@@ -75,10 +72,7 @@ fn test_load_dataset_invalid_image_magic_number() {
     fs::write(&images_path, images).unwrap();
     fs::write(&labels_path, create_test_labels()).unwrap();
 
-    let result = load_dataset(
-        images_path.to_str().unwrap(),
-        labels_path.to_str().unwrap(),
-    );
+    let result = load_dataset(images_path.to_str().unwrap(), labels_path.to_str().unwrap());
 
     assert!(result.is_err());
 }
@@ -93,10 +87,7 @@ fn test_load_dataset_incomplete_image_header() {
     fs::write(&images_path, vec![0, 0, 0, 0]).unwrap();
     fs::write(&labels_path, create_test_labels()).unwrap();
 
-    let result = load_dataset(
-        images_path.to_str().unwrap(),
-        labels_path.to_str().unwrap(),
-    );
+    let result = load_dataset(images_path.to_str().unwrap(), labels_path.to_str().unwrap());
 
     assert!(result.is_err());
 }
@@ -114,10 +105,7 @@ fn test_load_dataset_invalid_label_magic_number() {
     fs::write(&images_path, create_test_images()).unwrap();
     fs::write(&labels_path, labels).unwrap();
 
-    let result = load_dataset(
-        images_path.to_str().unwrap(),
-        labels_path.to_str().unwrap(),
-    );
+    let result = load_dataset(images_path.to_str().unwrap(), labels_path.to_str().unwrap());
 
     assert!(result.is_err());
 }
@@ -135,10 +123,7 @@ fn test_load_dataset_invalid_label_value() {
     fs::write(&images_path, create_test_images()).unwrap();
     fs::write(&labels_path, labels).unwrap();
 
-    let result = load_dataset(
-        images_path.to_str().unwrap(),
-        labels_path.to_str().unwrap(),
-    );
+    let result = load_dataset(images_path.to_str().unwrap(), labels_path.to_str().unwrap());
 
     assert!(result.is_err());
 }
@@ -153,10 +138,7 @@ fn test_load_dataset_mismatched_counts() {
     fs::write(&images_path, create_test_images()).unwrap();
     fs::write(&labels_path, create_test_labels_with_one_label()).unwrap();
 
-    let result = load_dataset(
-        images_path.to_str().unwrap(),
-        labels_path.to_str().unwrap(),
-    );
+    let result = load_dataset(images_path.to_str().unwrap(), labels_path.to_str().unwrap());
 
     assert!(result.is_err());
 }
