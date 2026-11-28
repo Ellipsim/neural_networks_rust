@@ -23,6 +23,12 @@ pub struct TrainingResult {
     pub validation_accuracy: f32,
 }
 
+#[derive(Clone, Debug)]
+pub struct EarlyStopping {
+    pub patience: usize,
+    pub min_delta: f32,
+}
+
 pub fn train<O: Optimizer>(
     network: &mut Network,
     dataset: &Mnist,
@@ -32,7 +38,8 @@ pub fn train<O: Optimizer>(
     epochs: usize,
     batch_size: usize,
     seed: u64,
-) -> Vec<TrainingResult> {
+    early_stopping: EarlyStopping,
+) -> Vec<TrainingResult> { 
     assert!(batch_size > 0, "Batch size must be greater than zero");
     assert!(!network.layers.is_empty(), "Network must have at least one layer");
 
@@ -55,6 +62,21 @@ pub fn train<O: Optimizer>(
         dataset.labels.len() * image_size,
         "Dataset image and label counts do not match"
     );
+
+    assert!(
+    early_stopping.patience > 0,
+    "Early stopping patience must be greater than zero"
+);
+
+    assert!(
+        early_stopping.min_delta >= 0.0,
+        "Early stopping min_delta cannot be negative"
+    );
+
+    let mut best_validation_loss = f32::INFINITY;
+    let mut epochs_without_improvement = 0;
+
+    let mut best_weights: Option<Vec<(Array2<f32>, Array2<f32>)>> = None;
 
     let total_images = dataset.labels.len();
     let mut history = Vec::with_capacity(epochs);
@@ -152,15 +174,55 @@ pub fn train<O: Optimizer>(
             activations,
         );
 
+        let validation_loss = validation_result.average_loss;
+
         history.push(TrainingResult {
             epoch: epoch + 1,
             average_loss,
             correct_predictions,
             total_images,
             accuracy,
-            validation_loss: validation_result.average_loss,
+            validation_loss,
             validation_accuracy: validation_result.accuracy,
         });
+
+        // Check whether validation loss has improved.
+        if validation_loss < best_validation_loss - early_stopping.min_delta {
+            best_validation_loss = validation_loss;
+            epochs_without_improvement = 0;
+
+            // Save the weights and biases of the best model.
+            best_weights = Some(
+                network.layers
+                    .iter()
+                    .map(|layer| {
+                        (layer.weights.clone(), layer.biases.clone())
+                    })
+                    .collect()
+            );
+        } else {
+            epochs_without_improvement += 1;
+        }
+
+        // Stop if validation loss has not improved for enough epochs.
+        if epochs_without_improvement >= early_stopping.patience {
+            println!(
+                "Early stopping at epoch {}. Best validation loss: {:.4}",
+                epoch + 1,
+                best_validation_loss
+            );
+
+            break;
+        }
+    }
+
+    if let Some(best_weights) = best_weights {
+        for (layer, (weights, biases)) in
+            network.layers.iter_mut().zip(best_weights)
+        {
+            layer.weights = weights;
+            layer.biases = biases;
+        }
     }
 
     history

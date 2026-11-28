@@ -5,7 +5,10 @@ use neural_networks_rust::data::mnist::{load_dataset, split_dataset};
 use neural_networks_rust::neural_network::evaluation::evaluate;
 use neural_networks_rust::neural_network::network::Network;
 use neural_networks_rust::neural_network::optimizers::adam::Adam;
-use neural_networks_rust::neural_network::training::train;
+use neural_networks_rust::neural_network::training::{
+    train,
+    EarlyStopping,
+};
 use neural_networks_rust::utils::experiment::{
     log_experiment,
     ExperimentConfig,
@@ -57,6 +60,11 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let mut optimizer = Adam::new(&network, learning_rate);
 
+    let early_stopping = EarlyStopping {
+        patience: 5,
+        min_delta: 0.001,
+    };
+
     println!("Starting training...");
     println!("Training images: {}", training_dataset.labels.len());
     println!("Validation images: {}", validation_dataset.labels.len());
@@ -72,6 +80,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         epochs,
         batch_size,
         seed,
+        early_stopping,
     );
 
     let training_seconds = training_start.elapsed().as_secs_f64();
