@@ -1,5 +1,8 @@
 use std::fs;
 use std::io::{Error, ErrorKind};
+use rand::seq::SliceRandom;
+use rand::SeedableRng;
+use rand::rngs::StdRng;
 
 pub struct Mnist {
     pub images: Vec<u8>,
@@ -41,6 +44,58 @@ pub fn load_dataset(images_path: &str, labels_path: &str) -> Result<Mnist, Error
         rows,
         cols,
     })
+}
+
+pub fn split_dataset(
+    dataset: Mnist,
+    validation_size: usize,
+    seed: u64,
+) -> (Mnist, Mnist) {
+    assert!(
+        validation_size > 0 && validation_size < dataset.labels.len(),
+        "Validation size must be between zero and the dataset size"
+    );
+
+    let image_size = dataset.rows * dataset.cols;
+
+    assert_eq!(
+        dataset.images.len(),
+        dataset.labels.len() * image_size,
+        "Dataset image and label counts do not match"
+    );
+
+    let mut indices: Vec<usize> = (0..dataset.labels.len()).collect();
+
+    let mut rng = StdRng::seed_from_u64(seed);
+    indices.shuffle(&mut rng);
+
+    let (validation_indices, training_indices) =
+        indices.split_at(validation_size);
+
+    let build_subset = |subset_indices: &[usize]| {
+        let mut images = Vec::with_capacity(subset_indices.len() * image_size);
+        let mut labels = Vec::with_capacity(subset_indices.len());
+
+        for &index in subset_indices {
+            let start = index * image_size;
+            let end = start + image_size;
+
+            images.extend_from_slice(&dataset.images[start..end]);
+            labels.push(dataset.labels[index]);
+        }
+
+        Mnist {
+            images,
+            labels,
+            rows: dataset.rows,
+            cols: dataset.cols,
+        }
+    };
+
+    (
+        build_subset(training_indices),
+        build_subset(validation_indices),
+    )
 }
 
 fn load_images(file_path: &str) -> Result<(Vec<u8>, usize, usize), Error> {

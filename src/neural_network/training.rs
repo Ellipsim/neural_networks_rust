@@ -7,6 +7,7 @@ use rand::rngs::StdRng;
 use crate::data::mnist::Mnist;
 use crate::neural_network::network::Network;
 use crate::neural_network::optimizers::Optimizer;
+use crate::neural_network::evaluation::evaluate;
 
 
 const NUM_CLASSES: usize = 10;
@@ -18,11 +19,14 @@ pub struct TrainingResult {
     pub correct_predictions: usize,
     pub total_images: usize,
     pub accuracy: f32,
+    pub validation_loss: f32,
+    pub validation_accuracy: f32,
 }
 
 pub fn train<O: Optimizer>(
     network: &mut Network,
     dataset: &Mnist,
+    validation_dataset: &Mnist,
     activations: &[&str],
     optimizer: &mut O,
     epochs: usize,
@@ -142,12 +146,20 @@ pub fn train<O: Optimizer>(
             0.0
         };
 
+        let validation_result = evaluate(
+            network,
+            validation_dataset,
+            activations,
+        );
+
         history.push(TrainingResult {
             epoch: epoch + 1,
             average_loss,
             correct_predictions,
             total_images,
             accuracy,
+            validation_loss: validation_result.average_loss,
+            validation_accuracy: validation_result.accuracy,
         });
     }
 

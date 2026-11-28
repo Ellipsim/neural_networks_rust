@@ -1,7 +1,7 @@
 
 use std::time::Instant;
 
-use neural_networks_rust::data::mnist::load_dataset;
+use neural_networks_rust::data::mnist::{load_dataset, split_dataset};
 use neural_networks_rust::neural_network::evaluation::evaluate;
 use neural_networks_rust::neural_network::network::Network;
 use neural_networks_rust::neural_network::optimizers::adam::Adam;
@@ -14,11 +14,22 @@ use neural_networks_rust::utils::experiment::{
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let total_start = Instant::now();
 
+    let seed = 42;
+
+    // Load the original MNIST training dataset.
     let training_data = load_dataset(
         "data/train-images-idx3-ubyte/train-images.idx3-ubyte",
         "data/train-labels-idx1-ubyte/train-labels.idx1-ubyte",
     )?;
 
+    // Split it into training and validation datasets.
+    let (training_dataset, validation_dataset) = split_dataset(
+        training_data,
+        10_000,
+        seed,
+    );
+
+    // Load the independent MNIST test dataset.
     let test_data = load_dataset(
         "data/t10k-images-idx3-ubyte/t10k-images.idx3-ubyte",
         "data/t10k-labels-idx1-ubyte/t10k-labels.idx1-ubyte",
@@ -32,7 +43,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         "softmax".to_string(),
     ];
 
-    let seed = 42;
+    let activation_refs = ["relu", "relu", "softmax"];
 
     let mut network = Network::from_random(
         &architecture,
@@ -42,21 +53,21 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let epochs = 30;
     let batch_size = 32;
-
-    // Learning rate: specified here.
     let learning_rate = 0.001;
 
-    // Select and configure the optimizer.
     let mut optimizer = Adam::new(&network, learning_rate);
 
     println!("Starting training...");
+    println!("Training images: {}", training_dataset.labels.len());
+    println!("Validation images: {}", validation_dataset.labels.len());
 
     let training_start = Instant::now();
 
     let history = train(
         &mut network,
-        &training_data,
-        &["relu", "relu", "softmax"],
+        &training_dataset,
+        &validation_dataset,
+        &activation_refs,
         &mut optimizer,
         epochs,
         batch_size,
@@ -67,16 +78,19 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     for result in &history {
         println!(
-            "Epoch {}/{} | Loss: {:.4} | Accuracy: {:.2}%",
+            "Epoch {}/{} | Training loss: {:.4} | Training accuracy: {:.2}% | Validation loss: {:.4} | Validation accuracy: {:.2}%",
             result.epoch,
             epochs,
             result.average_loss,
             result.accuracy * 100.0,
+            result.validation_loss,
+            result.validation_accuracy * 100.0,
         );
     }
 
     println!("Training time: {:.3} seconds", training_seconds);
 
+    // Evaluate the final network on the independent test dataset.
     println!("\nEvaluating on test data...");
 
     let evaluation_start = Instant::now();
@@ -84,7 +98,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let evaluation = evaluate(
         &network,
         &test_data,
-        &["relu", "relu", "softmax"],
+        &activation_refs,
     );
 
     let evaluation_seconds = evaluation_start.elapsed().as_secs_f64();
