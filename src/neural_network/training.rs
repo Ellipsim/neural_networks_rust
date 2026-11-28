@@ -1,9 +1,13 @@
 
 use ndarray::Array2;
+use rand::seq::SliceRandom;
+use rand::SeedableRng;
+use rand::rngs::StdRng;
 
 use crate::data::mnist::Mnist;
 use crate::neural_network::network::Network;
 use crate::neural_network::optimizers::Optimizer;
+
 
 const NUM_CLASSES: usize = 10;
 
@@ -23,6 +27,7 @@ pub fn train<O: Optimizer>(
     optimizer: &mut O,
     epochs: usize,
     batch_size: usize,
+    seed: u64,
 ) -> Vec<TrainingResult> {
     assert!(batch_size > 0, "Batch size must be greater than zero");
     assert!(!network.layers.is_empty(), "Network must have at least one layer");
@@ -50,7 +55,12 @@ pub fn train<O: Optimizer>(
     let total_images = dataset.labels.len();
     let mut history = Vec::with_capacity(epochs);
 
+    let mut rng = StdRng::seed_from_u64(seed);
+    let mut indices: Vec<usize> = (0..total_images).collect();
+
     for epoch in 0..epochs {
+        indices.shuffle(&mut rng);
+
         let mut total_loss = 0.0;
         let mut correct_predictions = 0;
 
@@ -64,10 +74,12 @@ pub fn train<O: Optimizer>(
             let mut target_values =
                 Vec::with_capacity(current_batch_size * NUM_CLASSES);
 
-            for index in batch_start..batch_end {
-                input_values.extend(dataset.get_prepared_image(index));
+            for position in batch_start..batch_end {
+                let dataset_index = indices[position];
 
-                let label = dataset.labels[index] as usize;
+                input_values.extend(dataset.get_prepared_image(dataset_index));
+
+                let label = dataset.labels[dataset_index] as usize;
                 assert!(label < NUM_CLASSES, "Invalid MNIST label");
 
                 for class in 0..NUM_CLASSES {
@@ -92,7 +104,7 @@ pub fn train<O: Optimizer>(
 
             // Calculate predictions and loss.
             for row in 0..current_batch_size {
-                let actual = dataset.labels[batch_start + row] as usize;
+                let actual = dataset.labels[indices[batch_start + row]] as usize;
 
                 let predicted = predictions
                     .row(row)

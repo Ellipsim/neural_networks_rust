@@ -32,9 +32,12 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         "softmax".to_string(),
     ];
 
+    let seed = 42;
+
     let mut network = Network::from_random(
         &architecture,
         "relu",
+        Some(seed),
     );
 
     let epochs = 30;
@@ -57,6 +60,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         &mut optimizer,
         epochs,
         batch_size,
+        seed,
     );
 
     let training_seconds = training_start.elapsed().as_secs_f64();
@@ -102,6 +106,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         learning_rate,
         batch_size,
         epochs,
+        seed,
     };
 
     let run_path = log_experiment(

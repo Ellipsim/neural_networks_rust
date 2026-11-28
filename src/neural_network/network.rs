@@ -1,6 +1,7 @@
 
 use ndarray::{Array2, Axis};
-use rand::RngExt;
+use rand::{RngExt, SeedableRng};
+use rand::rngs::StdRng;
 
 use crate::neural_network::gradients::{
     LayerGradients,
@@ -37,11 +38,22 @@ impl Network {
     pub fn from_random(
         architecture: &[usize],
         activation: &str,
+        seed: Option<u64>,
     ) -> Self {
         assert!(architecture.len() >= 2);
         assert!(architecture.iter().all(|&size| size > 0));
 
-        let mut rng = rand::rng();
+        let mut rng = match seed {
+            Some(seed) => {
+                // A seeded RNG is used for reproducibility.
+                StdRng::seed_from_u64(seed)
+            }
+            None => {
+                // A randomly initialized RNG is used otherwise.
+                StdRng::from_rng(&mut rand::rng())
+            }
+        };
+
         let mut layers = Vec::new();
 
         for dimensions in architecture.windows(2) {

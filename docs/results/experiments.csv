@@ -1,6 +1,0 @@
-run_id           , architecture , activations      , optimizer, learning_rate, batch_size, epochs, training_seconds, evaluation_seconds, test_loss, test_accuracy, correct_predictions, total_images
-run_1795793971706, 784-128-64-10, relu-relu-softmax, SGD      ,      0.030000,         32,      5,         1.709192,           0.028993,  0.107987,      0.967000,                9670,        10000
-run_1795795482641, 784-128-64-10, relu-relu-softmax, Adam     ,      0.001000,         32,      5,         4.333416,           0.026728,  0.130764,      0.965700,                9657,        10000
-run_1795795539264,784-128-64-10,relu-relu-softmax,Adam,0.010000,32,5,4.440989,0.035808,0.199711,0.952100,9521,10000
-run_1795795557562,784-128-64-10,relu-relu-softmax,Adam,0.005000,32,5,4.483238,0.026194,0.146254,0.963900,9639,10000
-run_1795795598381,784-128-64-10,relu-relu-softmax,Adam,0.001000,32,30,26.674280,0.036831,0.163196,0.978300,9783,10000
